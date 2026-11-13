@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Подсветка заказов — демо расширения</title>
+<style>
+  :root{
+    --ink:#141a24; --muted:#525c6b; --line:#e3e8ef; --bg:#f6f8fb; --card:#ffffff;
+    --accent:#4f46e5; --accent-soft:#7c6cf6;
+    --ok:#e7f6ee; --ok-ink:#0a7a4f; --warn:#fdf1e0; --warn-ink:#8a5300; --err:#fdeaea; --err-ink:#a3232b;
+    --r:14px; --sh:0 1px 2px rgba(16,23,37,.06), 0 8px 24px rgba(16,23,37,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.5 "Inter","Segoe UI",system-ui,-apple-system,sans-serif}
+  a{color:inherit}
+  .chrome{max-width:1240px;margin:24px auto 40px;padding:0 16px}
+
+  .browser{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+  .bar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eef1f6;border-bottom:1px solid var(--line)}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+  .url{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .mark{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent-soft));flex:none}
+  .tool{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:8px;
+    padding:6px 10px;font-size:12.5px;color:var(--muted);cursor:pointer;min-height:32px}
+  .tool[aria-pressed="true"]{background:#eef0ff;border-color:#c9cdfb;color:var(--accent)}
+
+  .page{position:relative;display:grid;grid-template-columns:1fr 344px;gap:0;min-height:560px}
+  .feed{padding:18px 18px 26px;border-right:1px solid var(--line);min-width:0}
+  .feed h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:700}
+  .row{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff;
+    transition:border-color .15s, background .15s;cursor:pointer;outline-offset:2px}
+  .row .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .row .name{font-weight:600;font-size:14.5px}
+  .row .pay{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
+  .row .desc{color:var(--muted);font-size:13px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .row .foot{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .tag{font-size:11.5px;border-radius:999px;padding:2px 8px;background:#eef1f6;color:var(--muted)}
+  .row.hit{border-color:#b9c0fb;background:#f7f7ff}
+  .row.hit::before{content:"";display:block;height:0}
+  .row:focus-visible,.tool:focus-visible,.chip:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* панель расширения */
+  .panel{position:relative;background:#fff}
+  .panel .head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .panel .head .mark{width:24px;height:24px;border-radius:8px}
+  .panel .head b{font-size:14px}
+  .panel .head small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+  .panel .body{padding:14px 16px}
+  .kpi{display:flex;gap:10px;margin-bottom:12px}
+  .kpi div{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .kpi b{display:block;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi span{font-size:11.5px;color:var(--muted)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:12.5px;
+    color:var(--muted);cursor:pointer;min-height:36px}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .panel .actions{display:flex;gap:8px}
+  .btn{flex:1;border:0;border-radius:10px;padding:11px 12px;font-size:13.5px;font-weight:600;cursor:pointer;min-height:44px}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .hint{color:var(--muted);font-size:12px;margin:12px 0 0}
+  .errbox{border:1px solid #fdeaea;background:#fff5f5;border-radius:10px;padding:12px;display:flex;
+    flex-direction:column;gap:8px;font-size:13px;margin-bottom:12px}
+  .errbox b{color:#a3232b;font-size:13.5px}
+  .errbox span{color:var(--muted)}
+  .empty{border:1px dashed var(--line);border-radius:10px;padding:18px;text-align:center;color:var(--muted);font-size:13px}
+  .skeleton{height:38px;border-radius:10px;background:linear-gradient(90deg,var(--line),var(--bg),var(--line));
+    background-size:200% 100%;animation:sk 1.1s linear infinite;margin-bottom:8px}
+  @keyframes sk{0%{background-position:0 0}100%{background-position:-200% 0}}
+
+  .note{max-width:1240px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font-size:13px}
+  .note b{color:var(--ink)}
+  @media (max-width:900px){
+    .page{grid-template-columns:1fr}
+    .feed{border-right:0;border-bottom:1px solid var(--line)}
+    .panel{border-radius:0}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="chrome">
+  <div class="browser">
+    <div class="bar">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <div class="url"><span class="mark"></span>freelancehunt.com/projects</div>
+      <button class="tool" id="toggle" aria-pressed="true" tabindex="0">панель включена</button>
+      <button class="tool" id="theme" tabindex="0">вид: светлый</button>
+      <button class="tool" id="states" tabindex="0">состояние: данные</button>
+    </div>
+
+    <div class="page">
+      <div class="feed">
+        <h2>Лента заказов · то, что видит пользователь</h2>
+        <div id="feed"></div>
+      </div>
+
+      <aside class="panel" aria-label="Панель расширения">
+        <div class="head">
+          <span class="mark"></span>
+          <div><b>Подсветка заказов</b><small>расширение · прототип · 2026-11-11</small></div>
+        </div>
+        <div class="body">
+          <div id="err" hidden>
+            <div class="errbox">
+              <b>Не удалось прочитать страницу</b>
+              <span>Сайт не ответил за 10 секунд. Попробуйте ещё раз — данные не потеряны.</span>
+              <button class="btn ghost" id="retry" tabindex="0">Повторить</button>
+            </div>
+          </div>
+          <div class="kpi">
+            <div><b id="k-found">0</b><span>подходит</span></div>
+            <div><b id="k-total">0</b><span>всего в ленте</span></div>
+          </div>
+          <div class="chips" role="group" aria-label="Фильтр по бюджету">
+            <button class="chip" data-min="0" aria-pressed="true">все</button>
+            <button class="chip" data-min="2500" aria-pressed="false">от 2500</button>
+            <button class="chip" data-min="5000" aria-pressed="false">от 5000</button>
+            <button class="chip" data-min="8000" aria-pressed="false">от 8000</button>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="export" tabindex="0">Выгрузить CSV</button>
+            <button class="btn ghost" id="clear" tabindex="0">Сброс</button>
+          </div>
+          <p class="hint" id="hint">Клик по карточке — отметить. Tab + Enter тоже работает.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>Что здесь настоящее:</b> фильтр по бюджету, отметки карточек, счётчики и выгрузка файла — работают.
+  <b>Что демонстрационное:</b> сами заказы и адрес страницы. В рабочей версии расширение читает открытую
+  страницу браузера и размечает то, что там есть; паузы и лимиты — чтобы не выглядеть ботом.
+</div>
+
+<script>
+  const ORDERS = [
+    {name:"Парсер цен конкурента", pay:3200, tags:["Python","парсинг"], good:true},
+    {name:"Расширение Chrome для подсветки заказов", pay:6000, tags:["JS","Manifest V3"], good:true},
+    {name:"Telegram-бот для заявок", pay:4500, tags:["aiogram","бот"], good:true},
+    {name:"Лендинг под запуск курса", pay:1800, tags:["вёрстка"], good:false},
+    {name:"Синхронизация Prom.ua и Хорошоп", pay:7000, tags:["API","интеграция"], good:true},
+    {name:"Дашборд по продажам", pay:8500, tags:["аналитика"], good:true},
+    {name:"Правка вёрстки на сайте", pay:900, tags:["мелочь"], good:false},
+    {name:"Выгрузка товаров в Excel", pay:2600, tags:["Python","CSV"], good:true}
+  ];
+  const state = {min: 0, marked: new Set(), panel: true};
+  const feed = document.getElementById('feed');
+  const money = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+  function visible() {
+    return ORDERS.map((o, i) => ({...o, i})).filter(o => o.pay >= state.min);
+  }
+
+  function skeleton() {
+    feed.innerHTML = Array.from({length: 5}, () => '<div class="skeleton"></div>').join('');
+  }
+
+  function render() {
+    const rows = visible();
+    feed.innerHTML = rows.length ? rows.map(o => `
+      <div class="row ${state.marked.has(o.i) ? 'hit' : ''}" role="button" tabindex="0"
+           aria-pressed="${state.marked.has(o.i)}" data-i="${o.i}">
+        <div class="top"><span class="name">${o.name}</span><span class="pay">${money(o.pay)} грн</span></div>
+        <div class="desc">Открытый заказ на бирже: забираем текст, бюджет и число откликов, отмечаем подходящие.</div>
+        <div class="foot">${o.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>`).join('')
+      : '<div class="empty">Ничего не найдено — сбросьте бюджет</div>';
+
+    document.getElementById('k-found').textContent = rows.filter(o => o.good).length;
+    document.getElementById('k-total').textContent = ORDERS.length;
+    document.querySelectorAll('.row').forEach(el => {
+      const mark = () => { const i = +el.dataset.i;
+        state.marked.has(i) ? state.marked.delete(i) : state.marked.add(i); render(); };
+      el.addEventListener('click', mark);
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mark(); } });
+    });
+  }
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+      chip.setAttribute('aria-pressed', 'true');
+      state.min = +chip.dataset.min;
+      render();
+    });
+  });
+
+  document.getElementById('export').addEventListener('click', () => {
+    const rows = visible();
+    const csv = 'name,pay,tags\n' + rows.map(o => `"${o.name}",${o.pay},"${o.tags.join(' ')}"`).join('\n');
+    const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type: 'text/csv;charset=utf-8'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'заказы.csv'; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    state.marked.clear();
+    document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.min === '0')));
+    state.min = 0;
+    render();
+  });
+
+  document.getElementById('toggle').addEventListener('click', e => {
+    state.panel = !state.panel;
+    e.currentTarget.setAttribute('aria-pressed', String(state.panel));
+    e.currentTarget.textContent = state.panel ? 'панель включена' : 'панель выключена';
+    document.querySelector('.panel').style.display = state.panel ? '' : 'none';
+    document.querySelector('.page').style.gridTemplateColumns = state.panel ? '1fr 344px' : '1fr';
+    document.querySelectorAll('.row').forEach(r => r.classList.remove('hit'));
+  });
+
+  document.getElementById('theme').addEventListener('click', e => {
+    const dark = document.body.dataset.theme !== 'dark';
+    document.body.dataset.theme = dark ? 'dark' : 'light';
+    e.currentTarget.textContent = dark ? 'вид: тёмный' : 'вид: светлый';
+    document.documentElement.style.setProperty('--bg', dark ? '#0d1421' : '#f6f8fb');
+    document.documentElement.style.setProperty('--card', dark ? '#141d2d' : '#ffffff');
+    document.documentElement.style.setProperty('--ink', dark ? '#eef2f8' : '#141a24');
+    document.documentElement.style.setProperty('--line', dark ? '#243044' : '#e3e8ef');
+    document.documentElement.style.setProperty('--muted', dark ? '#9aa7ba' : '#525c6b');
+  });
+
+  // хук для авто-проверки демо (tools/score_demo.py): поставить фильтр без клика
+  window.__demoSetMin = m => { state.min = m; render(); };
+
+  // показать клиенту все состояния: данные / загрузка / ошибка / пусто
+  const STATES = ['данные', 'загрузка', 'ошибка', 'пусто'];
+  let st = 0;
+  function applyState() {
+    const mode = STATES[st];
+    document.getElementById('states').textContent = 'состояние: ' + mode;
+    document.getElementById('err').hidden = mode !== 'ошибка';
+    document.querySelector('.feed').style.opacity = mode === 'ошибка' ? '.45' : '1';
+    if (mode === 'загрузка') { skeleton(); }
+    else if (mode === 'ошибка') { render(); }
+    else if (mode === 'пусто') { feed.innerHTML = '<div class="empty">Ничего не найдено — сбросьте бюджет</div>'; }
+    else { render(); }
+  }
+  document.getElementById('states').addEventListener('click', () => { st = (st + 1) % STATES.length; applyState(); });
+  document.getElementById('retry').addEventListener('click', () => { st = 0; applyState(); });
+
+  skeleton();
+  setTimeout(() => { render(); document.getElementById('hint').textContent =
+    'Клик по карточке — отметить. Tab + Enter тоже работает.'; }, 320);
+</script>
+</body>
+</html>
