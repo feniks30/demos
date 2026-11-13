@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Демо-бот: заявки</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 20px 48px; font: 16px/1.55 -apple-system,
+         "Segoe UI", Roboto, Arial, sans-serif; color: #16181d; background: #f6f7f9; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .back { display: inline-block; margin-bottom: 18px; color: #565b66; text-decoration: none; font-size: 14px; }
+  .back:hover { color: #16181d; }
+  h1 { margin: 0 0 6px; font-size: 25px; letter-spacing: -0.02em; }
+  .lead { margin: 0 0 22px; color: #565b66; font-size: 15px; }
+  .card { background: #fff; border: 1px solid #e3e5ea; border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .card h2 { margin: 0 0 10px; font-size: 16px; }
+  ol, ul { margin: 0; padding-left: 20px; }
+  li { margin: 6px 0; }
+  .go { display: block; text-align: center; padding: 14px 18px; border-radius: 12px;
+        background: #23a55a; color: #fff; text-decoration: none; font-weight: 650; font-size: 16px; }
+  .go:hover { background: #1d8c4c; }
+  .note { color: #7b818c; font-size: 13px; margin-top: 10px; }
+  code { background: #eef0f3; padding: 1px 5px; border-radius: 5px; font-size: 14px; }
+  .ext { margin-top: 14px; color: #565b66; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="./">← все демо</a>
+    <h1>Демо-бот: заявки</h1>
+    <p class="lead">Клиент пишет боту — заявка попадает в базу, а тебе приходит уведомление. Без Google Forms и переписок.</p>
+
+    <div class="card">
+      <h2>Что попробовать</h2>
+      <ol>
+        <li>Нажми <b>Start</b> — бот покажет меню.</li>
+        <li>Выбери «Оставить заявку» и ответь на три вопроса: имя, задача, срок.</li>
+        <li>Открой «Мои заявки» — увидишь список со статусами.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Что это показывает</h2>
+      <p style="margin:0">Так выглядит приём заявок в Telegram: меню, пошаговый диалог, хранение в базе, статусы и уведомление владельцу. У тебя будет то же самое, но под твои поля и вопросы.</p>
+    </div>
+
+    <a class="go" href="https://t.me/fh_orders_demo_bot">Открыть @fh_orders_demo_bot в Telegram →</a>
+    <p class="note">Демо-прототип: данные демонстрационные, ничего вводить лишнего не нужно.
+    Работает с телефона и с компьютера, ставить ничего не надо.</p>
+
+    <p class="ext">Нет Telegram под рукой? В комплекте есть исходники и офлайн-прогон:
+    <code>examples/демо-бот-заявки/</code> — <code>python -m bot.simulate</code> показывает то же самое без токена.</p>
+  </div>
+</body>
+</html>
