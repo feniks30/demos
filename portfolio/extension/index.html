@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Расширение для каталога — демо прототип</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f6f7f9; color: #16181d; line-height: 1.5; padding: 24px 16px; }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e3e5ea; }
+    .back-link { font-size: 0.95rem; color: #565b66; text-decoration: none; padding: 4px 8px; border: 1px solid #e3e5ea; border-radius: 8px; }
+    .back-link:hover { color: #23a55a; border-color: #23a55a; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-right: auto; }
+    .lead { color: #565b66; font-size: 14px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a href="../index.html" class="back-link">← Все примеры</a>
+      <h1>Расширение для каталога — демо прототип</h1>
+    </header>
+    <p class="lead">Интерактивный прототип расширения для фильтрации карточек в каталоге объявлений.</p>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Каталог объявлений</h2>
+          <span id="kpi-visible" style="font-size:.9rem;color:#565b66;">0 карточек</span>
+        </div>
+        <div class="browser-bar">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="url">catalog.example.ru/services</div>
+          <div class="mark"></div>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="catalog" id="catalog"></div>
+        </div>
+      </div>
+      <div class="panel" style="display:flex;flex-direction:column;">
+        <div class="panel-header">
+          <h2>Панель расширения</h2>
+        </div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:12px;overflow:auto;">
+          <div class="kpi-row">
+            <div class="kpi"><b id="kpi-total">0</b><span>всего</span></div>
+            <div class="kpi"><b id="kpi-priority">0</b><span>приоритет</span></div>
+            <div class="kpi"><b id="kpi-hidden">0</b><span>скрыто</span></div>
+          </div>
+          <div class="popup-section">
+            <h3>Настройки отображения</h3>
+            <div class="toggle-row"><span class="toggle-label">Подсветка приоритетных</span><label class="switch"><input type="checkbox" id="toggle-priority"><span class="slider"></span></label></div>
+            <div class="toggle-row"><span class="toggle-label">Скрытие дублей</span><label class="switch"><input type="checkbox" id="toggle-dupes"><span class="slider"></span></label></div>
+            <div class="toggle-row"><span class="toggle-label">Фильтр по бюджету</span><label class="switch"><input type="checkbox" id="toggle-budget"><span class="slider"></span></label></div>
+            <div class="chip-row" id="budget-chips">
+              <div class="chip active" data-budget="0">Любой бюджет</div>
+              <div class="chip" data-budget="5000">до 5 000 ₴</div>
+              <div class="chip" data-budget="15000">до 15 000 ₴</div>
+              <div class="chip" data-budget="30000">до 30 000 ₴</div>
+            </div>
+          </div>
+          <div class="popup-section">
+            <h3>Быстрая заметка</h3>
+            <button type="button" class="btn primary" id="btn-note">Сформировать шаблон заметки</button>
+            <div class="note-box" id="note-output"><pre id="note-text">—</pre></div>
+          </div>
+          <div class="popup-section">
+            <h3>Действия</h3>
+            <button type="button" class="btn" id="btn-reset">Сбросить фильтры</button>
+            <button type="button" class="btn primary" id="btn-export">Экспорт в CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+    .grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .panel { background: #fff; border: 1px solid #e3e5ea; border-radius: 12px; overflow: hidden; }
+    .panel-header { padding: 12px 16px; border-bottom: 1px solid #e3e5ea; display: flex; justify-content: space-between; align-items: center; }
+    .panel-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .panel-body { padding: 16px; }
+    .browser-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #eef1f6; border-bottom: 1px solid #e3e5ea; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #c9d1d9; }
+    .url { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e3e5ea; border-radius: 999px; padding: 6px 12px; font-size: 13px; color: #565b66; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .mark { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, #4f46e5, #7c6cf6); flex: none; }
+    .catalog { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .card { border: 1px solid #e3e5ea; border-radius: 10px; padding: 14px; background: #fff; cursor: pointer; transition: border-color .15s, box-shadow .15s; display: flex; flex-direction: column; gap: 8px; }
+    .card:hover { border-color: #4f46e5; box-shadow: 0 4px 12px -2px rgba(79,70,229,.12); }
+    .card.priority { border-color: #23a55a; background: #f7fdf9; }
+    .card.duplicate { opacity: .55; border-color: #e3e5ea; background: #fafafa; }
+    .card.hidden { display: none; }
+    .card-title { font-weight: 700; font-size: 14px; color: #16181d; }
+    .card-desc { color: #565b66; font-size: 13px; }
+    .card-foot { margin-top: 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .card-price { font-variant-numeric: tabular-nums; font-weight: 700; color: #16181d; }
+    .card-tag { font-size: 11px; border-radius: 999px; padding: 2px 8px; background: #eef1f6; color: #565b66; }
+    .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .btn-sm { border: 1px solid #c9d1d9; background: #fff; color: #16181d; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .btn-sm:hover { border-color: #4f46e5; color: #4f46e5; }
+    .btn-sm.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .popup { display: flex; flex-direction: column; gap: 12px; }
+    .popup-section { padding: 12px 16px; border-bottom: 1px solid #e3e5ea; }
+    .popup-section:last-child { border-bottom: none; }
+    .popup-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: #16181d; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .toggle-label { font-size: 13px; color: #16181d; cursor: pointer; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #c9d1d9; border-radius: 24px; transition: background .2s; }
+    .slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    input:checked + .slider { background: #4f46e5; }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .chip { border: 1px solid #c9d1d9; background: #fff; color: #565b66; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .chip.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .chip:hover { border-color: #4f46e5; }
+    .btn { border: 1px solid #c9d1d9; background: #fff; color: #16181d; padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; width: 100%; }
+    .btn.primary { background: #23a55a; color: #fff; border-color: #23a55a; }
+    .btn:hover { border-color: #23a55a; }
+    .btn.primary:hover { background: #1d8c4c; }
+    .note-box { border: 1px dashed #c9d1d9; background: #fbfdfe; border-radius: 8px; padding: 12px; margin-top: 8px; font-size: 13px; color: #565b66; }
+    .note-box pre { margin: 6px 0 0; white-space: pre-wrap; font-family: inherit; font-size: 12px; color: #16181d; }
+    .kpi-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .kpi { flex: 1; background: #f6f7f9; border: 1px solid #e3e5ea; border-radius: 10px; padding: 10px; text-align: center; }
+    .kpi b { display: block; font-size: 1.25rem; color: #16181d; }
+    .kpi span { font-size: 12px; color: #565b66; }
+    footer { margin-top: 28px; color: #7b818c; font-size: 13px; border-top: 1px solid #e3e5ea; padding-top: 16px; }
+    </style>
+    <script>
+      'use strict';
+      const SERVICES = [
+        { title: 'Ремонт сантехники', price: 3500, city: 'Киев', priority: true, dup: false },
+        { title: 'Электромонтаж под ключ', price: 5200, city: 'Львов', priority: false, dup: false },
+        { title: 'Отделка квартиры', price: 18000, city: 'Одесса', priority: true, dup: false },
+        { title: 'Установка окон', price: 7500, city: 'Киев', priority: false, dup: false },
+        { title: 'Ремонт сантехники', price: 3500, city: 'Киев', priority: true, dup: true },
+        { title: 'Красители и штукатурка', price: 9400, city: 'Днепр', priority: false, dup: false },
+        { title: 'Монтаж кондиционера', price: 6800, city: 'Харьков', priority: false, dup: false },
+        { title: 'Ремонт сантехники', price: 3500, city: 'Киев', priority: true, dup: true },
+        { title: 'Укладка плитки', price: 11000, city: 'Одесса', priority: false, dup: false },
+        { title: 'Электромонтаж под ключ', price: 5200, city: 'Львов', priority: false, dup: true },
+      ];
+      let items = SERVICES.map((s, i) => ({ id: i, ...s }));
+      let state = { priority: false, dupes: false, budget: false, budgetMax: 0 };
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+      const catalog = $('#catalog');
+      function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+      function render() {
+        let shown = items;
+        if (state.dupes) {
+          const seen = new Set();
+          shown = shown.filter(it => { const k = it.title + '|' + it.city; if (seen.has(k)) return false; seen.add(k); return true; });
+        }
+        if (state.budget && state.budgetMax > 0) { shown = shown.filter(it => it.price <= state.budgetMax); }
+        catalog.innerHTML = '';
+        shown.forEach(it => {
+          const card = document.createElement('article');
+          card.className = 'card' + (it.priority && state.priority ? ' priority' : '') + (it.dup && state.dupes ? ' duplicate' : '');
+          card.innerHTML = '<div class="card-title">' + escapeHtml(it.title) + '</div><div class="card-desc">г. ' + escapeHtml(it.city) + ' · ' + escapeHtml(it.priority ? 'срочно' : 'стандарт') + '</div><div class="card-foot"><span class="card-price">' + it.price.toLocaleString('ru-RU') + ' ₴</span><span class="card-tag">' + escapeHtml(it.city) + '</span></div><div class="card-actions"><button type="button" class="btn-sm" title="Отметить">★</button><button type="button" class="btn-sm" title="Скрыть">✕</button></div>';
+          catalog.appendChild(card);
+        });
+        $('#kpi-total').textContent = items.length;
+        $('#kpi-priority').textContent = items.filter(i => i.priority).length;
+        $('#kpi-hidden').textContent = items.length - shown.length;
+        $('#kpi-visible').textContent = shown.length + ' карточек';
+      }
+      $('#toggle-priority').addEventListener('change', e => { state.priority = e.target.checked; render(); });
+      $('#toggle-dupes').addEventListener('change', e => { state.dupes = e.target.checked; render(); });
+      $('#toggle-budget').addEventListener('change', e => { state.budget = e.target.checked; render(); });
+      $$('#budget-chips .chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          $$('#budget-chips .chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          state.budgetMax = +chip.dataset.budget;
+          state.budget = true;
+          $('#toggle-budget').checked = true;
+          render();
+        });
+      });
+      $('#btn-reset').addEventListener('click', () => {
+        state = { priority: false, dupes: false, budget: false, budgetMax: 0 };
+        $('#toggle-priority').checked = false;
+        $('#toggle-dupes').checked = false;
+        $('#toggle-budget').checked = false;
+        $$('#budget-chips .chip').forEach(c => c.classList.remove('active'));
+        $$('#budget-chips .chip')[0].classList.add('active');
+        render();
+      });
+      $('#btn-note').addEventListener('click', () => {
+        let shown = items;
+        if (state.dupes) {
+          const seen = new Set();
+          shown = shown.filter(it => { const k = it.title + '|' + it.city; if (seen.has(k)) return false; seen.add(k); return true; });
+        }
+        if (state.budget && state.budgetMax > 0) { shown = shown.filter(it => it.price <= state.budgetMax); }
+        const lines = ['Заметка по каталогу', 'Дата: ' + new Date().toLocaleDateString('ru-RU'), 'Всего карточек: ' + shown.length, ''].concat(shown.map(it => '- ' + it.title + ' (' + it.city + ', ' + it.price + ' ₴)'));
+        $('#note-text').textContent = lines.join('\n');
+      });
+      $('#btn-export').addEventListener('click', () => {
+        const rows = items.map(it => [it.title, it.city, it.price, it.priority ? 'да' : 'нет', it.dup ? 'да' : 'нет'].join(','));
+        const csv = '\ufeff' + 'Название,Город,Цена,Приоритет,Дубль\n' + rows.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'catalog_export.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      });
+      render();
+    </script>
+  </div>
+</body>
+</html>
+
+</body>
+</html>

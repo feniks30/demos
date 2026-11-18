@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сборщик данных — демо парсера</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #f6f7f9; color: #16181d; line-height: 1.5; padding: 24px 16px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+      padding-bottom: 16px; border-bottom: 1px solid #e3e5ea;
+    }
+    .back-link {
+      font-size: 0.95rem; color: #565b66; text-decoration: none;
+      padding: 4px 8px; border: 1px solid #e3e5ea; border-radius: 8px;
+    }
+    .back-link:hover { color: #23a55a; border-color: #23a55a; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-right: auto; }
+    .lead { color: #565b66; font-size: 14px; margin-bottom: 20px; }
+    .toolbar {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .btn {
+      border: 1px solid #c9d1d9; background: #fff; color: #16181d;
+      padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer;
+    }
+    .btn:hover { border-color: #23a55a; }
+    .btn.primary { background: #23a55a; color: #fff; border-color: #23a55a; }
+    .btn.primary:hover { background: #1d8c4c; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .panel { background: #fff; border: 1px solid #e3e5ea; border-radius: 12px; }
+    .panel-header {
+      padding: 12px 16px; border-bottom: 1px solid #e3e5ea;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .panel-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .panel-body { padding: 16px; }
+    .terminal {
+      height: 340px; overflow-y: auto; background: #0d1421; color: #eef2f8;
+      border-radius: 8px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 13px; line-height: 1.4;
+    }
+    .log-line { margin: 4px 0; white-space: pre-wrap; }
+    .log-ts { color: #8b949e; user-select: none; }
+    .log-msg { color: #c9d1d9; }
+    .log-ok { color: #3fb950; }
+    .log-warn { color: #d29922; }
+    .log-err { color: #f85149; }
+    .log-step { color: #58a6ff; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e3e5ea; text-align: left; }
+    th { background: #f6f7f9; font-weight: 700; color: #565b66; text-transform: uppercase; font-size: 11px; letter-spacing: .06em; }
+    tr:hover { background: #f7fdf9; }
+    .price { font-variant-numeric: tabular-nums; color: #16181d; font-weight: 600; }
+    .price-none { color: #94a3b8; font-style: italic; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .badge-new { background: #e7f6ee; color: #0a7a4f; }
+    .badge-used { background: #fdf1e0; color: #8a5300; }
+    .empty { text-align: center; color: #565b66; padding: 24px; }
+    .notify-card {
+      background: #fff; border: 1px solid #e3e5ea; border-radius: 12px; padding: 16px;
+      margin-top: 16px; position: relative;
+    }
+    .notify-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .notify-card p { color: #565b66; font-size: 14px; margin-bottom: 12px; }
+    .notify-preview {
+      border: 1px solid #e3e5ea; border-radius: 8px; padding: 12px; background: #fbfdfe;
+    }
+    .notify-preview .title { font-weight: 700; color: #16181d; }
+    .notify-preview .price { color: #23a55a; font-weight: 700; }
+    .notify-hint { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #3fb950; border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .running .btn.primary::after { content: ''; display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; margin-left: 6px; }
+    .stat-row { display: flex; justify-content: space-between; gap: 16px; margin-top: 12px; font-size: 13px; color: #565b66; }
+    .stat { text-align: center; }
+    .stat b { display: block; font-size: 1.25rem; color: #16181d; }
+    footer { margin-top: 28px; color: #7b818c; font-size: 13px; border-top: 1px solid #e3e5ea; padding-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a href="../index.html" class="back-link">← Все примеры</a>
+      <h1>Сборщик данных — демо парсера</h1>
+    </header>
+    <p class="lead">Симулятор сбора позиций из нейтрального каталога (мониторинг цен электроники). Все данные демонстрационные, формы не отправляются наружу.</p>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="btn-start">Запустить сбор данных</button>
+      <button type="button" class="btn" id="btn-filter">Фильтр: только с ценой</button>
+      <button type="button" class="btn" id="btn-csv">Скачать CSV</button>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Лог терминала</h2>
+          <span id="stat-count" style="font-size:.9rem;color:#565b66;">0 записей</span>
+        </div>
+        <div class="panel-body">
+          <div class="terminal" id="terminal"></div>
+        </div>
+      </div>
+      <div class="panel" style="display:flex;flex-direction:column;">
+        <div class="panel-header">
+          <h2>Собранные позиции</h2>
+          <span id="stat-total" style="font-size:.9rem;color:#565b66;">0</span>
+        </div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:12px;overflow:auto;">
+          <div class="stat-row">
+            <div class="stat"><b id="stat-all">0</b><span>всего</span></div>
+            <div class="stat"><b id="stat-with-price">0</b><span>с ценой</span></div>
+            <div class="stat"><b id="stat-filtered">0</b><span>после фильтра</span></div>
+          </div>
+          <table id="results-table">
+            <thead>
+              <tr>
+                <th>Позиция</th><th>Цена</th><th>Источник</th><th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+          <p id="empty-msg" class="empty" style="display:none;">Нет собранных позиций. Нажмите «Запустить сбор данных».</p>
+        </div>
+
+        <div class="notify-card" style="margin-top:auto;">
+          <h3>Превью уведомления</h3>
+          <p>При сборе позиции с ценой формируется карточка уведомления:</p>
+          <div class="notify-preview" id="notify-preview">
+            <div class="title">—</div>
+            <div class="price">—</div>
+            <div class="notify-hint">Кнопки перехода в мессенджер отсутствуют.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Данные носят демонстрационный характер. Сбор симулируется локально в браузере, внешние запросы не выполняются.</footer>
+  </div>
+
+  <script>
+    'use strict';
+    const SOURCES = [
+      'markeplace-a.com', 'shop-b.com', 'hypermarket-c.com', 'gadgets-d.com', 'tech-e.com',
+      'store-f.com', 'market-g.com', 'shop-h.com', 'mall-i.com', 'outlet-j.com'
+    ];
+    const CATALOG = [
+      { name: 'Смартфон X10 128 ГБ', price: 24990, inStock: true },
+      { name: 'Ноутбук ProBook 14', price: 58990, inStock: true },
+      { name: 'Наушники wireless', price: 8490, inStock: true },
+      { name: 'Часы умные Series 5', price: 15990, inStock: false },
+      { name: 'Колонка портативная', price: 4990, inStock: true },
+      { name: 'Монитор 27 дюймов', price: 21990, inStock: true },
+      { name: 'Клавиатура механическая', price: 6490, inStock: true },
+      { name: 'Мышь эргономичная', price: 3190, inStock: true },
+      { name: 'Веб-камера Full HD', price: 5490, inStock: false },
+      { name: 'Утюг парогенератор', price: 7290, inStock: true },
+      { name: 'Пылесос беспроводной', price: 12990, inStock: true },
+      { name: 'Мультиварка 5 л', price: 9490, inStock: true },
+      { name: 'Блендер переносной', price: 3990, inStock: true },
+      { name: 'Робот-пылесос', price: 28990, inStock: false },
+      { name: 'Чайник электрический', price: 3490, inStock: true },
+      { name: 'Тостер 2 ломтика', price: 4590, inStock: true },
+      { name: 'Кофеварка капельная', price: 8990, inStock: true },
+      { name: 'Фен профессиональный', price: 6790, inStock: true },
+      { name: 'Бритва электрическая', price: 5290, inStock: true },
+      { name: 'Весы умные', price: 4190, inStock: true },
+    ];
+    let records = [];
+    let filterPriceOnly = false;
+    let running = false;
+    const $ = (sel) => document.querySelector(sel);
+    const terminal = $('#terminal');
+    const tbody = $('#results-tbody');
+    const btnStart = $('#btn-start');
+    const btnFilter = $('#btn-filter');
+    const btnCsv = $('#btn-csv');
+    const notifyPreview = $('#notify-preview');
+    const statAll = $('#stat-all');
+    const statWithPrice = $('#stat-with-price');
+    const statFiltered = $('#stat-filtered');
+    const statCount = $('#stat-count');
+    const emptyMsg = $('#empty-msg');
+    const STATUS_LABELS = { new: 'Новая', used: 'Б/у', out: 'Нет в наличии' };
+    function log(text, type) {
+      type = type || 'msg';
+      const now = new Date();
+      const ts = now.toLocaleTimeString('ru-RU', { hour12: false });
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = '<span class="log-ts">[' + ts + ']</span> <span class="log-' + type + '">' + escapeHtml(text) + '</span>';
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    function renderTable() {
+      const data = filterPriceOnly ? records.filter(r => r.price) : records;
+      tbody.innerHTML = '';
+      if (data.length === 0) {
+        emptyMsg.style.display = '';
+        tbody.style.display = 'none';
+      } else {
+        emptyMsg.style.display = 'none';
+        tbody.style.display = '';
+        data.forEach((r) => {
+          const tr = document.createElement('tr');
+          const statusClass = r.inStock ? 'badge-new' : 'badge-used';
+          const priceHtml = r.price
+            ? '<span class="price">' + r.price.toLocaleString('ru-RU') + ' ₴</span>'
+            : '<span class="price-none">цена не указана</span>';
+          tr.innerHTML = '<td><span class="badge ' + statusClass + '">' + escapeHtml(STATUS_LABELS[r.status || 'new']) + '</span><br>' + escapeHtml(r.name) + '</td><td>' + priceHtml + '</td><td>' + escapeHtml(r.source) + '</td><td>' + (r.inStock ? 'в наличии' : 'под заказ') + '</td>';
+          tbody.appendChild(tr);
+        });
+      }
+      statFiltered.textContent = data.length;
+    }
+    function updateStats() {
+      statAll.textContent = records.length;
+      statWithPrice.textContent = records.filter(r => r.price).length;
+      statCount.textContent = records.length + ' записей';
+      renderTable();
+    }
+    function updateNotify(item) {
+      if (!item) {
+        notifyPreview.innerHTML = '<div class="title">—</div><div class="price">—</div><div class="notify-hint">Кнопки перехода в мессенджер отсутствуют.</div>';
+        return;
+      }
+      const priceHtml = item.price
+        ? '<div class="price">' + item.price.toLocaleString('ru-RU') + ' ₴</div>'
+        : '<div class="price">цена не указана</div>';
+      notifyPreview.innerHTML = '<div class="title">' + escapeHtml(item.name) + '</div>' + priceHtml + '<div class="notify-hint">Кнопки перехода в мессенджер отсутствуют.</div>';
+    }
+    function randomItem() {
+      const base = CATALOG[Math.floor(Math.random() * CATALOG.length)];
+      const source = SOURCES[Math.floor(Math.random() * SOURCES.length)];
+      const hasPrice = Math.random() > 0.15;
+      return {
+        id: Date.now() + Math.random(),
+        name: base.name,
+        price: hasPrice ? base.price : null,
+        inStock: base.inStock,
+        source,
+        status: base.inStock ? 'new' : 'out',
+        collectedAt: new Date().toISOString(),
+      };
+    }
+    function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+    async function runCollection() {
+      if (running) return;
+      running = true;
+      btnStart.disabled = true;
+      btnStart.classList.add('running');
+      records = [];
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'none';
+      updateStats();
+      updateNotify(null);
+      log('Запуск сборщика данных...', 'step');
+      log('Целевой каталог: мониторинг цен электроники', 'msg');
+      log('Источники: ' + SOURCES.join(', '), 'msg');
+      const batchSize = 5;
+      const totalBatches = 4;
+      for (let b = 0; b < totalBatches; b++) {
+        await sleep(700);
+        log('Пакет ' + (b + 1) + ' из ' + totalBatches + ': запрос к источникам...', 'step');
+        for (let i = 0; i < batchSize; i++) {
+          await sleep(200);
+          const item = randomItem();
+          records.push(item);
+          if (item.price) {
+            log('+ ' + escapeHtml(item.name) + ' — ' + item.price.toLocaleString('ru-RU') + ' ₴ (' + escapeHtml(item.source) + ')', 'ok');
+            updateNotify(item);
+          } else {
+            log('+ ' + escapeHtml(item.name) + ' — цена не указана (' + escapeHtml(item.source) + ')', 'warn');
+          }
+          updateStats();
+        }
+      }
+      log('Сбор завершён. Всего собрано: ' + records.length + ' позиций', 'step');
+      log('С ценами: ' + records.filter(r => r.price).length + ', без цены: ' + records.filter(r => !r.price).length, 'msg');
+      running = false;
+      btnStart.disabled = false;
+      btnStart.classList.remove('running');
+    }
+    btnStart.addEventListener('click', runCollection);
+    btnFilter.addEventListener('click', () => {
+      filterPriceOnly = !filterPriceOnly;
+      btnFilter.textContent = filterPriceOnly ? 'Фильтр: все позиции' : 'Фильтр: только с ценой';
+      renderTable();
+    });
+    btnCsv.addEventListener('click', () => {
+      const data = filterPriceOnly ? records.filter(r => r.price) : records;
+      if (!data.length) { alert('Нет данных для выгрузки.'); return; }
+      const headers = ['Позиция', 'Цена', 'Источник', 'Статус', 'Дата сбора'];
+      const rows = data.map(r => [
+        '"' + escapeHtml(r.name) + '"',
+        r.price ? r.price : '',
+        escapeHtml(r.source),
+        r.inStock ? 'в наличии' : 'под заказ',
+        new Date(r.collectedAt).toLocaleString('ru-RU'),
+      ].join(','));
+      const csv = '\ufeff' + headers.join(',') + '\n' + rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'parser_export.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      log('CSV экспорт: ' + data.length + ' записей -> parser_export.csv', 'ok');
+    });
+  </script>
+
+</body>
+</html>
